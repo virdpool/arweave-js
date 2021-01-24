@@ -362,6 +362,7 @@ describe("Silo Web", function() {
 
 describe("ArQL", function() {
   it("should return a list of results", async function() {
+    this.timeout(10000)
     const plainTextTransactions = await arweave.arql({
       op: "equals",
       expr1: "Content-Type",
