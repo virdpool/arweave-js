@@ -75,6 +75,9 @@ export default class Transactions {
         ],
       })
       .then((response) => {
+        if (!/^\d+$/.test(response.data)) {
+          throw new Error(`Bad server getPrice response: ${response.data}`)
+        }
         return response.data;
       });
   }
