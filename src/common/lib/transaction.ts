@@ -212,6 +212,22 @@ export default class Transaction
     }
     const proof = this.chunks.proofs[idx];
     const chunk = this.chunks.chunks[idx];
+    console.log("DEBUG getChunk data_root", this.data_root);
+    console.log("DEBUG getChunk data_size", this.data_size);
+    console.log("DEBUG getChunk data_path", proof.proof);
+    console.log("DEBUG getChunk data_path", ArweaveUtils.bufferTob64Url(proof.proof));
+    console.log("DEBUG getChunk offset   ", proof.offset);
+    console.log("DEBUG getChunk chunk    ", chunk.minByteRange, chunk.maxByteRange);
+    console.log("DEBUG getChunk chunk    ", data.slice(chunk.minByteRange, chunk.maxByteRange));
+    console.log("DEBUG getChunk", JSON.stringify({
+      data_root: this.data_root,
+      data_size: this.data_size,
+      data_path: ArweaveUtils.bufferTob64Url(proof.proof),
+      offset: proof.offset.toString(),
+      chunk: ArweaveUtils.bufferTob64Url(
+        data.slice(chunk.minByteRange, chunk.maxByteRange)
+      ),
+    }));
     return {
       data_root: this.data_root,
       data_size: this.data_size,

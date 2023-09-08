@@ -291,26 +291,37 @@ export function bufferToInt(buffer: Uint8Array): number {
 export const arrayCompare = (a: Uint8Array | any[], b: Uint8Array | any[]) =>
   a.every((value: any, index: any) => b[index] === value);
 
+const rebaseMark = new Uint8Array(HASH_SIZE);
+
+// Note. Function doesn't perform full check
+// Missing parts: IsRightMostInItsSubTree, CheckBorders, CheckSplit, AllowRebase
 export async function validatePath(
   id: Uint8Array,
   dest: number,
   leftBound: number,
   rightBound: number,
+  leftBoundShift: number,
   path: Uint8Array
 ): Promise<
   | false
   | { offset: number; leftBound: number; rightBound: number; chunkSize: number }
 > {
+  console.log("DEBUG validatePath id            ", id);
+  console.log("DEBUG validatePath dest          ", dest);
+  console.log("DEBUG validatePath leftBound     ", leftBound);
+  console.log("DEBUG validatePath rightBound    ", rightBound);
+  console.log("DEBUG validatePath leftBoundShift", leftBoundShift);
+  console.log("DEBUG validatePath path          ", path);
   if (rightBound <= 0) {
     return false;
   }
 
   if (dest >= rightBound) {
-    return validatePath(id, 0, rightBound - 1, rightBound, path);
+    return validatePath(id, 0, rightBound - 1, rightBound, leftBoundShift, path);
   }
 
   if (dest < 0) {
-    return validatePath(id, 0, 0, rightBound, path);
+    return validatePath(id, 0, 0, rightBound, leftBoundShift, path);
   }
 
   if (path.length == HASH_SIZE + NOTE_SIZE) {
@@ -327,17 +338,75 @@ export async function validatePath(
     let result = arrayCompare(id, pathDataHash);
     if (result) {
       return {
-        offset: rightBound - 1,
-        leftBound: leftBound,
-        rightBound: rightBound,
+        offset: leftBoundShift + rightBound - 1,
+        leftBound: leftBoundShift + leftBound,
+        rightBound: leftBoundShift + rightBound,
         chunkSize: rightBound - leftBound,
       };
     }
     return false;
   }
+  const lookup = path.slice(0, HASH_SIZE);
+  if (arrayCompare(lookup, rebaseMark)) {
+    console.log("DEBUG rebase");
+    const left = path.slice(
+      lookup.length,
+      lookup.length + HASH_SIZE
+    );
+    const right = path.slice(
+      lookup.length + left.length,
+      lookup.length + left.length + HASH_SIZE
+    );
+    const offsetBuffer = path.slice(
+      lookup.length + left.length + right.length,
+      lookup.length + left.length + right.length + HASH_SIZE
+    );
+    const offset = bufferToInt(offsetBuffer);
+    const remainder = path.slice(
+      lookup.length + left.length + right.length + offsetBuffer.length
+    );
+    const pathHash = await hash([
+      await hash(left),
+      await hash(right),
+      await hash(offsetBuffer),
+    ]);
+    console.log("DEBUG left         ", left);
+    console.log("DEBUG right        ", right);
+    console.log("DEBUG offsetBuffer ", offsetBuffer);
+    console.log("DEBUG offset       ", offset);
+    console.log("DEBUG pathHash     ", pathHash);
+    if (arrayCompare(id, pathHash)) {
+      if (dest < offset) {
+        console.log("DEBUG dest < offset");
+        const offset2 = Math.min(offset, rightBound);
+        return await validatePath(
+          left,
+          0,
+          offset2 - leftBound,
+          dest - leftBound,
+          leftBoundShift + leftBound,
+          remainder
+        );
+      }
+      console.log("DEBUG ! dest < offset");
+      const offset2 = Math.max(leftBound, offset);
+      return await validatePath(
+        right,
+        0,
+        rightBound - offset2,
+        dest - offset2,
+        leftBoundShift + offset2,
+        remainder
+      );
+    }
+    return false;
+  }
 
-  const left = path.slice(0, HASH_SIZE);
-  const right = path.slice(left.length, left.length + HASH_SIZE);
+  const left = lookup;
+  const right = path.slice(
+    left.length,
+    left.length + HASH_SIZE
+  );
   const offsetBuffer = path.slice(
     left.length + right.length,
     left.length + right.length + NOTE_SIZE
@@ -361,6 +430,7 @@ export async function validatePath(
         dest,
         leftBound,
         Math.min(rightBound, offset),
+        leftBoundShift,
         remainder
       );
     }
@@ -369,6 +439,7 @@ export async function validatePath(
       dest,
       Math.max(leftBound, offset),
       rightBound,
+      leftBoundShift,
       remainder
     );
   }

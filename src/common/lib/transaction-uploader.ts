@@ -141,6 +141,7 @@ export class TransactionUploader {
       parseInt(chunk.offset),
       0,
       parseInt(chunk.data_size),
+      0,
       ArweaveUtils.b64UrlToBuffer(chunk.data_path)
     );
     if (!chunkOk) {
