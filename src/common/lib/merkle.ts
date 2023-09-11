@@ -306,12 +306,6 @@ export async function validatePath(
   | false
   | { offset: number; leftBound: number; rightBound: number; chunkSize: number }
 > {
-  console.log("DEBUG validatePath id            ", id);
-  console.log("DEBUG validatePath dest          ", dest);
-  console.log("DEBUG validatePath leftBound     ", leftBound);
-  console.log("DEBUG validatePath rightBound    ", rightBound);
-  console.log("DEBUG validatePath leftBoundShift", leftBoundShift);
-  console.log("DEBUG validatePath path          ", path);
   if (rightBound <= 0) {
     return false;
   }
@@ -348,7 +342,6 @@ export async function validatePath(
   }
   const lookup = path.slice(0, HASH_SIZE);
   if (arrayCompare(lookup, rebaseMark)) {
-    console.log("DEBUG rebase");
     const left = path.slice(
       lookup.length,
       lookup.length + HASH_SIZE
@@ -370,14 +363,8 @@ export async function validatePath(
       await hash(right),
       await hash(offsetBuffer),
     ]);
-    console.log("DEBUG left         ", left);
-    console.log("DEBUG right        ", right);
-    console.log("DEBUG offsetBuffer ", offsetBuffer);
-    console.log("DEBUG offset       ", offset);
-    console.log("DEBUG pathHash     ", pathHash);
     if (arrayCompare(id, pathHash)) {
       if (dest < offset) {
-        console.log("DEBUG dest < offset");
         const offset2 = Math.min(offset, rightBound);
         return await validatePath(
           left,
@@ -388,7 +375,6 @@ export async function validatePath(
           remainder
         );
       }
-      console.log("DEBUG ! dest < offset");
       const offset2 = Math.max(leftBound, offset);
       return await validatePath(
         right,
