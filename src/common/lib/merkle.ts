@@ -259,7 +259,7 @@ async function hashBranch(
   return branch;
 }
 
-async function hash(data: Uint8Array | Uint8Array[]) {
+export async function hash(data: Uint8Array | Uint8Array[]) {
   if (Array.isArray(data)) {
     data = Arweave.utils.concatBuffers(data);
   }
@@ -291,7 +291,7 @@ export function bufferToInt(buffer: Uint8Array): number {
 export const arrayCompare = (a: Uint8Array | any[], b: Uint8Array | any[]) =>
   a.every((value: any, index: any) => b[index] === value);
 
-const rebaseMark = new Uint8Array(HASH_SIZE);
+export const rebaseMark = new Uint8Array(HASH_SIZE);
 
 // Note. Function doesn't perform full check
 // Missing parts: IsRightMostInItsSubTree, CheckBorders, CheckSplit, AllowRebase

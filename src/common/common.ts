@@ -4,6 +4,8 @@ import CryptoInterface from "./lib/crypto/crypto-interface";
 import CryptoDriver from "@crypto/node-driver";
 import Network from "./network";
 import Transactions from "./transactions";
+import * as BundledTransactions from "./bundled-transactions";
+import { Chunk, Proof } from "./lib/merkle";
 import Wallets from "./wallets";
 import Transaction, { TransactionInterface, Tag } from "./lib/transaction";
 import { JWKInterface } from "./lib/wallet";
@@ -28,6 +30,11 @@ export interface CreateTransactionInterface {
   data_size: string;
   data_root: string;
   reward: string;
+}
+
+export interface CreateBundledTransactionInterface {
+  txList: Transaction[];
+  skipData? : boolean;
 }
 
 export default class Arweave {
@@ -209,6 +216,43 @@ export default class Arweave {
     siloTransaction.addTag("Silo-Version", `0.1.0`);
 
     return siloTransaction;
+  }
+
+  // WARNING. Will mutate provided txList
+  public async createBundledTransaction(attributes: CreateBundledTransactionInterface): Promise<Transaction> {
+    let tree = await BundledTransactions.createTree(attributes.txList, 0n, 0n);
+    BundledTransactions.fillProof(tree, new Uint8Array(0));
+    BundledTransactions.updateChunkProof(tree, tree.data_root);
+    let chunkList : Chunk[] = [];
+    let proofList : Proof[] = [];
+    BundledTransactions.collectChunkAndProofList(tree, chunkList, proofList);
+
+    // unnecessary extra memory allocation
+    // OR use uploader for each parent tx separately
+    let data : Uint8Array;
+    if (attributes.skipData) {
+      data = new Uint8Array(0);
+    } else {
+      data = new Uint8Array(parseInt(tree.size_bn.toString()));
+      attributes.txList.forEach((tx)=>{
+        data.set(tx.data, tx.dense_offset);
+      });
+    }
+
+    let transaction = new Transaction({
+      data_size : tree.size_bn.toString(),
+      last_tx : await this.transactions.getTransactionAnchor(),
+      data,
+      data_root : ArweaveUtils.bufferTob64Url(tree.data_root),
+      reward : await this.transactions.getPrice(parseInt(tree.size_bn.toString()), "")
+    });
+    transaction.chunks = {
+      data_root: tree.data_root,
+      chunks: chunkList,
+      proofs: proofList
+    };
+
+    return transaction;
   }
 
   public arql(query: object): Promise<string[]> {
