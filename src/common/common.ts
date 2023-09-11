@@ -34,7 +34,7 @@ export interface CreateTransactionInterface {
 
 export interface CreateBundledTransactionInterface {
   txList: Transaction[];
-  skipData? : boolean;
+  skipData?: boolean;
 }
 
 export default class Arweave {
@@ -219,37 +219,42 @@ export default class Arweave {
   }
 
   // WARNING. Will mutate provided txList
-  public async createBundledTransaction(attributes: CreateBundledTransactionInterface): Promise<Transaction> {
+  public async createBundledTransaction(
+    attributes: CreateBundledTransactionInterface
+  ): Promise<Transaction> {
     let tree = await BundledTransactions.createTree(attributes.txList, 0n, 0n);
     BundledTransactions.fillProof(tree, new Uint8Array(0));
     BundledTransactions.updateChunkProof(tree, tree.data_root);
-    let chunkList : Chunk[] = [];
-    let proofList : Proof[] = [];
+    let chunkList: Chunk[] = [];
+    let proofList: Proof[] = [];
     BundledTransactions.collectChunkAndProofList(tree, chunkList, proofList);
 
     // unnecessary extra memory allocation
     // OR use uploader for each parent tx separately
-    let data : Uint8Array;
+    let data: Uint8Array;
     if (attributes.skipData) {
       data = new Uint8Array(0);
     } else {
       data = new Uint8Array(parseInt(tree.size_bn.toString()));
-      attributes.txList.forEach((tx)=>{
+      attributes.txList.forEach((tx) => {
         data.set(tx.data, tx.dense_offset);
       });
     }
 
     let transaction = new Transaction({
-      data_size : tree.size_bn.toString(),
-      last_tx : await this.transactions.getTransactionAnchor(),
+      data_size: tree.size_bn.toString(),
+      last_tx: await this.transactions.getTransactionAnchor(),
       data,
-      data_root : ArweaveUtils.bufferTob64Url(tree.data_root),
-      reward : await this.transactions.getPrice(parseInt(tree.size_bn.toString()), "")
+      data_root: ArweaveUtils.bufferTob64Url(tree.data_root),
+      reward: await this.transactions.getPrice(
+        parseInt(tree.size_bn.toString()),
+        ""
+      ),
     });
     transaction.chunks = {
       data_root: tree.data_root,
       chunks: chunkList,
-      proofs: proofList
+      proofs: proofList,
     };
 
     return transaction;

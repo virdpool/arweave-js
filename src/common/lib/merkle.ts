@@ -311,7 +311,14 @@ export async function validatePath(
   }
 
   if (dest >= rightBound) {
-    return validatePath(id, 0, rightBound - 1, rightBound, leftBoundShift, path);
+    return validatePath(
+      id,
+      0,
+      rightBound - 1,
+      rightBound,
+      leftBoundShift,
+      path
+    );
   }
 
   if (dest < 0) {
@@ -342,10 +349,7 @@ export async function validatePath(
   }
   const lookup = path.slice(0, HASH_SIZE);
   if (arrayCompare(lookup, rebaseMark)) {
-    const left = path.slice(
-      lookup.length,
-      lookup.length + HASH_SIZE
-    );
+    const left = path.slice(lookup.length, lookup.length + HASH_SIZE);
     const right = path.slice(
       lookup.length + left.length,
       lookup.length + left.length + HASH_SIZE
@@ -389,10 +393,7 @@ export async function validatePath(
   }
 
   const left = lookup;
-  const right = path.slice(
-    left.length,
-    left.length + HASH_SIZE
-  );
+  const right = path.slice(left.length, left.length + HASH_SIZE);
   const offsetBuffer = path.slice(
     left.length + right.length,
     left.length + right.length + NOTE_SIZE
